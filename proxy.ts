@@ -6,7 +6,8 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/forgot-password(.*)',
-  '/sso-callback(.*)'
+  '/sso-callback(.*)',
+  '/pricing(.*)'
 ]);
 
 const isAuthRoute = createRouteMatcher([
@@ -22,7 +23,7 @@ export default clerkMiddleware(async (auth, request) => {
   
   // Smart Redirects: If user is authenticated and tries to access auth routes or home page
   if (userId && isAuthRoute(request)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/scanner', request.url));
   }
 
   // Protect non-public routes

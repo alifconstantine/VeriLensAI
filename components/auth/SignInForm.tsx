@@ -34,7 +34,7 @@ export default function SignInForm() {
         setError(signInError.message || "Invalid credentials.");
       } else if (signIn.status === "complete") {
         await signIn.finalize();
-        router.push("/dashboard");
+        router.push("/scanner");
       } else {
         // Needs further steps (like MFA)
         console.log("Sign in status:", signIn.status);
