@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -26,7 +27,9 @@ export default function RootLayout({
         className={`${notoSans.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col font-sans text-[#1c1c1e] bg-white">
-          {children}
+          <ConvexClientProvider>
+            {children}
+          </ConvexClientProvider>
         </body>
       </html>
     </ClerkProvider>
