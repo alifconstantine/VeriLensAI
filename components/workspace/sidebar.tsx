@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, CreditCard, Code, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, CreditCard, Code, Settings, ChevronLeft, ChevronRight, History } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { name: "Scanner", icon: Search, href: "/scanner" },
+  { name: "History", icon: History, href: "/history" },
   { name: "Credits & Billing", icon: CreditCard, href: "/credits" },
   { name: "API Access", icon: Code, href: "/api-access" },
   { name: "Settings", icon: Settings, href: "/settings" },
