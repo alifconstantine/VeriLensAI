@@ -4,6 +4,8 @@ import { v } from "convex/values";
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -59,5 +61,26 @@ export const getUserHistory = query({
         fileUrl: scan.fileStorageId ? await ctx.storage.getUrl(scan.fileStorageId) : null,
       }))
     );
+  },
+});
+
+export const deleteScan = mutation({
+  args: { id: v.id("scans") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated call to deleteScan");
+    }
+
+    const scan = await ctx.db.get(args.id);
+    if (!scan || scan.userId !== identity.subject) {
+      throw new Error("Scan not found or unauthorized");
+    }
+
+    if (scan.fileStorageId) {
+      await ctx.storage.delete(scan.fileStorageId);
+    }
+
+    await ctx.db.delete(args.id);
   },
 });

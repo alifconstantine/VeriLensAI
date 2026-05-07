@@ -2,8 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Zap, Clock, Check } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function CreditsPage() {
+  const user = useQuery(api.users.getUser);
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-12">
       <div className="space-y-2">
@@ -25,7 +29,7 @@ export default function CreditsPage() {
             <div className="flex items-center gap-3">
               <Zap className="h-10 w-10 text-[#1c1c1e]" />
               <span className="text-[64px] font-medium text-[#1c1c1e] tracking-tight">
-                50
+                {user === undefined ? "..." : user === null ? "0" : user.credits}
               </span>
             </div>
             <p className="text-[16px] text-[#1c1c1e]">Credits Available</p>

@@ -166,6 +166,9 @@ export default function ForgotPasswordForm() {
   return (
     <div className="rounded-[16px] border border-[#e0e2e8] bg-white p-8">
       <div className="mb-6 flex flex-col items-center">
+        <div className="mb-4 flex items-center justify-center">
+          <img src="/logo.png" alt="VeriLens Logo" className="h-10 w-10 object-contain" />
+        </div>
         <h1 className="text-[28px] font-medium leading-[1.25] text-[#1c1c1e]">Forgot password?</h1>
         <p className="mt-2 text-center text-[14px] text-[#555a6a]">
           Enter your email address and we'll send you a code to reset your password.

@@ -1,11 +1,12 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, UploadCloud, FileImage, Type, ShieldAlert, Cpu, CheckCircle } from "lucide-react";
-import { useState, useCallback, useRef } from "react";
+import { Download, UploadCloud, FileImage, Type, ShieldAlert, Cpu, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import Link from "next/link";
 
 const TABS = [
   { id: "image", label: "Image", icon: FileImage },
@@ -29,6 +30,7 @@ type ScanResult = {
 };
 
 export default function ScannerPage() {
+  const { isAuthenticated } = useConvexAuth();
   const [activeTab, setActiveTab] = useState<Tab>("image");
   const [isHovering, setIsHovering] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "complete">("idle");
@@ -41,10 +43,33 @@ export default function ScannerPage() {
   // Interactive Hover State
   const [hoveredAnomalyIndex, setHoveredAnomalyIndex] = useState<number | null>(null);
 
+  // Convex Hooks
+  const user = useQuery(api.users.getUser);
+  const initUser = useMutation(api.users.initUser);
+  const deductCredits = useMutation(api.users.deductCredits);
+  const addCredits = useMutation(api.users.addCredits);
   const generateUploadUrl = useMutation(api.scans.generateUploadUrl);
   const saveScan = useMutation(api.scans.saveScan);
 
+  useEffect(() => {
+    // Initialize user credits if they are new and authenticated
+    if (isAuthenticated) {
+      initUser().catch(console.error);
+    }
+  }, [initUser, isAuthenticated]);
+
+  const hasEnoughCredits = user !== undefined && user !== null && user.credits >= 10;
+  const isOutOfCredits = user !== undefined && user !== null && user.credits < 10;
+
   const handleImageUpload = (file: File) => {
+    if (isOutOfCredits) return;
+    
+    // 5MB Limit Validation
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size exceeds 5MB limit. Please upload a smaller image.");
+      return;
+    }
+
     setRawImageFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -57,21 +82,30 @@ export default function ScannerPage() {
     e.preventDefault();
     setIsHovering(false);
     
+    if (isOutOfCredits) return;
     if (activeTab === "image" && e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleImageUpload(e.dataTransfer.files[0]);
     }
-  }, [activeTab]);
+  }, [activeTab, isOutOfCredits]);
 
   const startScan = async () => {
+    if (isOutOfCredits) return;
     if (activeTab === "image" && (!imageFileUrl || !rawImageFile)) return;
     if (activeTab === "text" && !textContent.trim()) return;
 
     setScanStatus("scanning");
     setHoveredAnomalyIndex(null);
 
+    let creditsDeducted = false;
+
     try {
+      // 1. Deduct Credits First
+      await deductCredits();
+      creditsDeducted = true;
+
       let storageId: string | undefined = undefined;
 
+      // 2. Upload Image to Convex (if image)
       if (activeTab === "image" && rawImageFile) {
         const uploadUrl = await generateUploadUrl();
         const uploadResult = await fetch(uploadUrl, {
@@ -88,12 +122,16 @@ export default function ScannerPage() {
         storageId = returnedStorageId;
       }
 
+      const currentLang = user?.language || "id";
+
+      // 3. Call Gemini API
       const response = await fetch("/api/detect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mediaType: activeTab,
           content: activeTab === "image" ? imageFileUrl : textContent,
+          language: currentLang,
         }),
       });
 
@@ -105,6 +143,7 @@ export default function ScannerPage() {
       const data: ScanResult = await response.json();
       setResult(data);
 
+      // 4. Save to Convex Database
       await saveScan({
         mediaType: activeTab,
         fileStorageId: storageId as any,
@@ -119,7 +158,19 @@ export default function ScannerPage() {
     } catch (error: any) {
       console.error(error);
       setScanStatus("idle");
-      alert(error.message || "Error scanning content. Please try again.");
+      
+      // Auto-Refund Logic if an error occurs after deduction
+      if (creditsDeducted) {
+        try {
+          await addCredits({ amount: 10 });
+          alert(`Scan failed: ${error.message}. Your 10 credits have been refunded.`);
+        } catch (refundError) {
+          console.error("Failed to refund credits", refundError);
+          alert("Scan failed and we encountered an error refunding credits. Please contact support.");
+        }
+      } else {
+        alert(error.message || "Error scanning content. Please try again.");
+      }
     }
   };
 
@@ -243,12 +294,31 @@ export default function ScannerPage() {
               transition={{ duration: 0.2 }}
               className="relative mt-2 max-w-3xl mx-auto w-full"
             >
+              {/* Overlay for Out of Credits */}
+              {isOutOfCredits && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-[16px] border border-[#e0e2e8] bg-white/40 backdrop-blur-md dark:bg-black/40">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fbd4d4] mb-4 shadow-sm">
+                    <AlertCircle className="h-8 w-8 text-[#d92d20]" />
+                  </div>
+                  <h3 className="mb-2 text-[24px] font-medium text-[#1c1c1e]">Out of Credits</h3>
+                  <p className="mb-6 text-[14px] text-[#555a6a]">
+                    You need at least 10 credits to run an AI scan.
+                  </p>
+                  <Link 
+                    href="/pricing"
+                    className="flex items-center gap-2 rounded-full bg-[#ffd02f] px-6 py-3 text-[14px] font-bold text-[#1c1c1e] transition-transform hover:scale-105 shadow-[0_4px_14px_rgba(255,208,47,0.4)]"
+                  >
+                    ⚡ Get More Credits
+                  </Link>
+                </div>
+              )}
+
               {activeTab === "image" ? (
                 <div
-                  onDragOver={(e) => { e.preventDefault(); setIsHovering(true); }}
+                  onDragOver={(e) => { e.preventDefault(); if (!isOutOfCredits) setIsHovering(true); }}
                   onDragLeave={() => setIsHovering(false)}
                   onDrop={handleDrop}
-                  onClick={() => !imageFileUrl && fileInputRef.current?.click()}
+                  onClick={() => !isOutOfCredits && !imageFileUrl && fileInputRef.current?.click()}
                   className={cn(
                     "group flex cursor-pointer flex-col items-center justify-center rounded-[16px] border border-[#e0e2e8] p-12 transition-all duration-300 min-h-[400px] overflow-hidden relative shadow-[0_12px_32px_-4px_rgba(5,0,56,0.08)]",
                     isHovering 
@@ -259,7 +329,9 @@ export default function ScannerPage() {
                   <input 
                     type="file" 
                     ref={fileInputRef} 
-                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} 
+                    onChange={(e) => {
+                      if (!isOutOfCredits && e.target.files?.[0]) handleImageUpload(e.target.files[0]);
+                    }} 
                     className="hidden" 
                     accept="image/*"
                   />
@@ -289,8 +361,9 @@ export default function ScannerPage() {
                   <textarea
                     value={textContent}
                     onChange={(e) => setTextContent(e.target.value)}
-                    placeholder="Paste the text you want to analyze here..."
-                    className="w-full flex-1 resize-none bg-transparent text-[16px] text-[#1c1c1e] placeholder:text-[#a5a8b5] focus:outline-none"
+                    disabled={isOutOfCredits}
+                    placeholder={isOutOfCredits ? "Please purchase more credits to analyze text." : "Paste the text you want to analyze here..."}
+                    className="w-full flex-1 resize-none bg-transparent text-[16px] text-[#1c1c1e] placeholder:text-[#a5a8b5] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               )}
@@ -298,7 +371,7 @@ export default function ScannerPage() {
               <div className="mt-8 flex justify-center">
                 <button 
                   onClick={startScan}
-                  disabled={activeTab === "image" ? !imageFileUrl : !textContent.trim()}
+                  disabled={isOutOfCredits || (activeTab === "image" ? !imageFileUrl : !textContent.trim())}
                   className="rounded-full bg-[#1c1c1e] px-8 py-3 text-[14px] font-medium text-[#ffffff] transition-colors hover:bg-[#2c2c34] disabled:opacity-50 disabled:hover:bg-[#1c1c1e]"
                 >
                   Analyze {activeTab === "image" ? "Image" : "Text"}
@@ -447,10 +520,6 @@ export default function ScannerPage() {
 
                   {/* Actions Area */}
                   <div className="mt-8 flex flex-col gap-3 border-t border-[#e0e2e8] pt-6">
-                    <button className="flex w-full items-center justify-center gap-2 rounded-full border border-[#c7cad5] bg-transparent px-4 py-3 text-[14px] font-medium text-[#1c1c1e] transition-colors hover:bg-[#f7f8fa]">
-                      <Download className="h-4 w-4" />
-                      Export PDF Report
-                    </button>
                     <button 
                       onClick={resetScan}
                       className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1c1c1e] px-4 py-3 text-[14px] font-medium text-[#ffffff] transition-colors hover:bg-[#2c2c34]"

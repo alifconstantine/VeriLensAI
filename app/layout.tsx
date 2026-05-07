@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Noto_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
-const notoSans = Noto_Sans({
-  variable: "--font-noto-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -24,12 +25,15 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${notoSans.variable} h-full antialiased`}
+        className={`${inter.variable} h-full antialiased`}
+        suppressHydrationWarning
       >
-        <body className="min-h-full flex flex-col font-sans text-[#1c1c1e] bg-white">
-          <ConvexClientProvider>
-            {children}
-          </ConvexClientProvider>
+        <body className="min-h-full flex flex-col font-sans text-foreground bg-background dark:bg-background dark:text-foreground transition-colors duration-300">
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <ConvexClientProvider>
+              {children}
+            </ConvexClientProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

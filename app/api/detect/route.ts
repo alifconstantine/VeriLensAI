@@ -20,14 +20,18 @@ Return ONLY a valid JSON object matching this schema:
 
 export async function POST(req: Request) {
   try {
-    const { mediaType, content } = await req.json();
+    const { mediaType, content, language = "id" } = await req.json();
 
     if (!mediaType || !content) {
       return NextResponse.json({ error: "Missing mediaType or content" }, { status: 400 });
     }
 
+    const langInstruction = language === "en" 
+      ? "\nIMPORTANT: You MUST write the 'conclusion', 'detailed_reasons', and 'anomalies.description' in strictly ENGLISH."
+      : "\nIMPORTANT: You MUST write the 'conclusion', 'detailed_reasons', and 'anomalies.description' in strictly INDONESIAN (Bahasa Indonesia).";
+
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + langInstruction },
     ];
 
     if (mediaType === "image") {
