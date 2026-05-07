@@ -1,13 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/forgot-password(.*)',
-  '/sso-callback(.*)',
-  '/pricing(.*)'
+// Hanya route ini yang akan dijaga ketat oleh auth (Whitelist protection)
+const isProtectedRoute = createRouteMatcher([
+  '/scanner(.*)',
+  '/history(.*)',
+  '/settings(.*)',
+  '/credits(.*)'
 ]);
 
 const isAuthRoute = createRouteMatcher([
@@ -26,8 +25,8 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.redirect(new URL('/scanner', request.url));
   }
 
-  // Protect non-public routes
-  if (!isPublicRoute(request)) {
+  // Protect only specific routes instead of non-public routes
+  if (isProtectedRoute(request)) {
     await auth.protect();
   }
 });

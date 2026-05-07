@@ -12,4 +12,9 @@ export default defineSchema({
     conclusion: v.string(),
     anomalies: v.optional(v.any()), // Store the JSON array of anomalies
   }).index("by_user", ["userId"]),
+  users: defineTable({
+    userId: v.string(), // Clerk User ID
+    credits: v.number(),
+    language: v.optional(v.string()), // ID or EN
+  }).index("by_userId", ["userId"]),
 });

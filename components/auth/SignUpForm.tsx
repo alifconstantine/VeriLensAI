@@ -132,8 +132,8 @@ export default function SignUpForm() {
   return (
     <div className="rounded-[16px] border border-[#e0e2e8] bg-white p-8">
       <div className="mb-6 flex flex-col items-center">
-        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-sm bg-[#ffd02f]">
-          <div className="h-5 w-5 rounded-full bg-[#1c1c1e]" />
+        <div className="mb-4 flex items-center justify-center">
+          <img src="/logo.png" alt="VeriLens Logo" className="h-10 w-10 object-contain" />
         </div>
         <h1 className="text-[28px] font-medium leading-[1.25] text-[#1c1c1e]">Create an account</h1>
         <p className="mt-2 text-[14px] text-[#555a6a]">Start your free trial today</p>

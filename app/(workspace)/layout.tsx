@@ -12,7 +12,9 @@ export default function WorkspaceLayout({
       <div className="relative z-10 flex h-screen flex-col">
         <Topbar />
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
+          <div className="hidden md:flex">
+            <Sidebar />
+          </div>
           <main className="flex-1 overflow-y-auto overflow-x-hidden p-8 bg-[#f7f8fa] relative">
             {children}
           </main>

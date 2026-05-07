@@ -11,7 +11,6 @@ const NAV_ITEMS = [
   { name: "Scanner", icon: Search, href: "/scanner" },
   { name: "History", icon: History, href: "/history" },
   { name: "Credits & Billing", icon: CreditCard, href: "/credits" },
-  { name: "API Access", icon: Code, href: "/api-access" },
   { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
