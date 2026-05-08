@@ -44,9 +44,10 @@ export default function ForgotPasswordForm() {
       }
       
       setSuccessfulCreation(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Forgot password error:", err);
-      setError(err.errors?.[0]?.message || "Could not initiate password reset.");
+      const e = err as { errors?: { message: string }[] };
+      setError(e.errors?.[0]?.message || "Could not initiate password reset.");
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +88,10 @@ export default function ForgotPasswordForm() {
         console.log("Reset status:", signIn.status);
         setError("Password reset incomplete.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Reset password error:", err);
-      setError(err.errors?.[0]?.message || "Invalid code or password.");
+      const e = err as { errors?: { message: string }[] };
+      setError(e.errors?.[0]?.message || "Invalid code or password.");
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +173,7 @@ export default function ForgotPasswordForm() {
         </div>
         <h1 className="text-[28px] font-medium leading-[1.25] text-[#1c1c1e]">Forgot password?</h1>
         <p className="mt-2 text-center text-[14px] text-[#555a6a]">
-          Enter your email address and we'll send you a code to reset your password.
+          Enter your email address and we&apos;ll send you a code to reset your password.
         </p>
       </div>
 

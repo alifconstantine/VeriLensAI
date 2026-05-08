@@ -1,6 +1,6 @@
 "use client";
 
-import { FileImage, Type, Clock, Search, ChevronRight, ShieldAlert, CheckCircle, Trash2, X } from "lucide-react";
+import { FileImage, Type, Clock, Search, ChevronRight, ShieldAlert, CheckCircle, Trash2, X, FileText } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState } from "react";
@@ -14,6 +14,7 @@ type HistoryItem = {
   isAiGenerated: boolean;
   confidenceScore: number;
   textContent?: string;
+  fileName?: string;
   fileUrl?: string | null;
   conclusion: string;
 };
@@ -87,7 +88,7 @@ export default function HistoryPage() {
                   {/* Media Type */}
                   <td className="px-6 py-5 align-middle">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f8fa] border border-[#e0e2e8] text-[#555a6a]">
-                      {item.mediaType === "image" ? <FileImage className="h-5 w-5" /> : <Type className="h-5 w-5" />}
+                      {item.mediaType === "image" ? <FileImage className="h-5 w-5" /> : item.mediaType === "document" ? <FileText className="h-5 w-5" /> : <Type className="h-5 w-5" />}
                     </div>
                   </td>
 
@@ -101,9 +102,14 @@ export default function HistoryPage() {
                           <div className="flex h-full w-full items-center justify-center text-[#a5a8b5]">Img</div>
                         )}
                       </div>
+                    ) : item.mediaType === "document" ? (
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-[#8e91a0] shrink-0" />
+                        <span className="truncate text-[14px] font-medium text-[#1c1c1e]">{item.fileName || "Document"}</span>
+                      </div>
                     ) : (
                       <p className="truncate text-[14px] text-[#555a6a]" title={item.textContent}>
-                        "{item.textContent?.slice(0, 50) || "No text available"}..."
+                        &quot;{item.textContent?.slice(0, 50) || "No text available"}&quot;...
                       </p>
                     )}
                   </td>
@@ -224,6 +230,14 @@ export default function HistoryPage() {
                   {previewItem.mediaType === "image" && previewItem.fileUrl ? (
                     <div className="relative flex items-center justify-center w-full h-full min-h-[250px] rounded-[8px] overflow-hidden border border-[#eef0f3] bg-[#ffffff]">
                       <img src={previewItem.fileUrl} alt="Analyzed Media" className="max-w-full max-h-full object-contain" />
+                    </div>
+                  ) : previewItem.mediaType === "document" && previewItem.fileUrl ? (
+                    <div className="w-full h-full min-h-[400px] border border-[#eef0f3] rounded-[8px] bg-[#eef0f3] overflow-hidden">
+                      <object data={previewItem.fileUrl} type="application/pdf" className="w-full h-full">
+                        <iframe src={previewItem.fileUrl} className="w-full h-full border-none">
+                          <p>Your browser does not support PDFs. Please download the PDF to view it.</p>
+                        </iframe>
+                      </object>
                     </div>
                   ) : (
                     <div className="w-full h-full p-4 bg-[#ffffff] border border-[#eef0f3] rounded-[8px] overflow-y-auto whitespace-pre-wrap text-[14px] text-[#1c1c1e] leading-[1.6]">

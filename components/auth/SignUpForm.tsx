@@ -47,9 +47,10 @@ export default function SignUpForm() {
       } else {
         setPendingVerification(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign up error:", err);
-      setError(err.errors?.[0]?.message || "An error occurred during sign up.");
+      const e = err as { errors?: { message: string }[] };
+      setError(e.errors?.[0]?.message || "An error occurred during sign up.");
     } finally {
       setIsLoading(false);
     }
@@ -71,14 +72,15 @@ export default function SignUpForm() {
         setError(verifyError.message || "Invalid verification code.");
       } else if (signUp.status === "complete") {
         await signUp.finalize();
-        router.push("/dashboard");
+        router.push("/home");
       } else {
         console.log("Verification status:", signUp.status);
         setError("Verification incomplete. Please try again.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Verification error:", err);
-      setError(err.errors?.[0]?.message || "Invalid verification code.");
+      const e = err as { errors?: { message: string }[] };
+      setError(e.errors?.[0]?.message || "Invalid verification code.");
     } finally {
       setIsLoading(false);
     }

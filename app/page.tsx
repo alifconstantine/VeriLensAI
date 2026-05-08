@@ -162,7 +162,7 @@ export default function Home() {
         <div className="device-image-wrapper fade-in-up delay-1">
           {/* IMAGE NOTE: mobile-scanner.png – generated 1024×1024, ideally replace with 1440×900 hero screenshot */}
           <img
-            src="/mobile-scanner.png"
+            src="/Scanning.png"
             alt="VeriLens mobile and desktop experience"
           />
         </div>
@@ -174,7 +174,7 @@ export default function Home() {
           <div className="split-image">
             {/* IMAGE NOTE: scan-dashboard.png – generated 1024×1024, ideally replace with 640×480 UI screenshot */}
             <img
-              src="/scan-dashboard.png"
+              src="/history.png"
               alt="VeriLens scan management dashboard"
             />
           </div>
@@ -241,7 +241,7 @@ export default function Home() {
           <div className="split-image">
             {/* IMAGE NOTE: analytics-dashboard.png – generated 1024×1024, ideally replace with 640×480 analytics screenshot */}
             <img
-              src="/analytics-dashboard.png"
+              src="/dashboard.png"
               alt="VeriLens detection analytics dashboard"
             />
           </div>
@@ -351,44 +351,50 @@ export default function Home() {
           </span>
         </div>
 
-        <div className="testimonials-carousel fade-in-up delay-2">
-          {[
-            {
-              text: "As a newsroom that publishes thousands of images daily, we needed a tool we could trust. VeriLens catches what human eyes miss — every single time.",
-              name: "Sarah Chen",
-              role: "Editor-in-Chief, TechCrunch",
-              initials: "SC",
-            },
-            {
-              text: "We integrated VeriLens into our content moderation pipeline. The API is clean, fast, and the accuracy is remarkable. It's become indispensable.",
-              name: "Marcus Webb",
-              role: "CTO, MediaGuard",
-              initials: "MW",
-            },
-            {
-              text: "Before VeriLens, verifying user-submitted photos was a nightmare. Now it takes seconds. The forensic reports are detailed enough for legal proceedings.",
-              name: "Dr. Lena Park",
-              role: "Digital Forensics Lead, Interpol",
-              initials: "LP",
-            },
-            {
-              text: "The batch scanning feature alone saved us hundreds of hours. We process over 10,000 images per week and VeriLens handles it effortlessly.",
-              name: "James Okoro",
-              role: "Head of Trust & Safety, Snap",
-              initials: "JO",
-            },
-          ].map((t, i) => (
-            <div className="testimonial-card" key={i}>
-              <p className="testimonial-card-text">&ldquo;{t.text}&rdquo;</p>
-              <div className="testimonial-card-author">
-                <div className="testimonial-card-avatar">{t.initials}</div>
-                <div className="testimonial-card-info">
-                  <div className="tc-name">{t.name}</div>
-                  <div className="tc-role">{t.role}</div>
-                </div>
+        <div className="testimonials-carousel-wrapper fade-in-up delay-2">
+          <div className="testimonials-carousel">
+            {[...Array(2)].map((_, arrayIndex) => (
+              <div className="testimonials-carousel-track" key={arrayIndex}>
+                {[
+                  {
+                    text: "As a newsroom that publishes thousands of images daily, we needed a tool we could trust. VeriLens catches what human eyes miss — every single time.",
+                    name: "Sarah Chen",
+                    role: "Editor-in-Chief, TechCrunch",
+                    initials: "SC",
+                  },
+                  {
+                    text: "We integrated VeriLens into our content moderation pipeline. The API is clean, fast, and the accuracy is remarkable. It's become indispensable.",
+                    name: "Marcus Webb",
+                    role: "CTO, MediaGuard",
+                    initials: "MW",
+                  },
+                  {
+                    text: "Before VeriLens, verifying user-submitted photos was a nightmare. Now it takes seconds. The forensic reports are detailed enough for legal proceedings.",
+                    name: "Dr. Lena Park",
+                    role: "Digital Forensics Lead, Interpol",
+                    initials: "LP",
+                  },
+                  {
+                    text: "The batch scanning feature alone saved us hundreds of hours. We process over 10,000 images per week and VeriLens handles it effortlessly.",
+                    name: "James Okoro",
+                    role: "Head of Trust & Safety, Snap",
+                    initials: "JO",
+                  },
+                ].map((t, i) => (
+                  <div className="testimonial-card" key={i}>
+                    <p className="testimonial-card-text">&ldquo;{t.text}&rdquo;</p>
+                    <div className="testimonial-card-author">
+                      <div className="testimonial-card-avatar">{t.initials}</div>
+                      <div className="testimonial-card-info">
+                        <div className="tc-name">{t.name}</div>
+                        <div className="tc-role">{t.role}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -490,42 +496,6 @@ export default function Home() {
             </ul>
             <Link href="/contact" className="btn-primary">
               Contact sales
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Community ── */}
-      <section className="community-section">
-        <div className="section-header fade-in-up">
-          <p className="section-label">Community</p>
-          <h2 className="section-title">Stay in the loop</h2>
-        </div>
-
-        <div className="community-cards fade-in-up delay-1">
-          <div className="community-card">
-            <p className="community-card-stat">5,000+ users</p>
-            <h3>X / Twitter</h3>
-            <p>
-              Stay updated on new detection models, feature releases, and learn
-              how experts are using VeriLens.
-            </p>
-            <Link href="https://x.com" className="btn-primary btn-small">
-              Follow us
-            </Link>
-          </div>
-          <div className="community-card">
-            <p className="community-card-stat">2,400+ subscribers</p>
-            <h3>YouTube</h3>
-            <p>
-              Tutorials, case studies, and in-depth guides on AI detection,
-              digital forensics, and media verification.
-            </p>
-            <Link
-              href="https://youtube.com"
-              className="btn-primary btn-small"
-            >
-              Subscribe
             </Link>
           </div>
         </div>

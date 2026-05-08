@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const updateLanguage = useMutation(api.users.updateLanguage);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (user?.language) {
       setLanguage(user.language as "id" | "en");
