@@ -127,8 +127,9 @@ export default function Home() {
             <Link href="/sign-up" className="btn-primary">
               Start scanning free
             </Link>
-            <button className="btn-ghost" aria-label="Watch demo">
+            <button className="flex items-center justify-center gap-2 rounded-full border border-[#e0e2e8] bg-transparent px-4 py-3 text-[14px] md:px-[28px] md:py-[14px] font-medium text-[#1c1c1e] transition-all hover:bg-[#f7f8fa] hover:text-[#1c1c1e] active:scale-[0.97]" aria-label="Watch demo">
               <Play size={16} style={{ fill: "currentColor" }} />
+              <span className="hidden sm:inline">Watch demo</span>
             </button>
           </motion.div>
 

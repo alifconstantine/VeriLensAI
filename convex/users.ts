@@ -1,5 +1,22 @@
 import { mutation, query } from "./_generated/server";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
+
+export const createUser = mutation({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!existingUser) {
+      await ctx.db.insert("users", {
+        userId: args.userId,
+        credits: 50,
+      });
+    }
+  },
+});
 
 export const initUser = mutation({
   args: {},
@@ -69,8 +86,6 @@ export const deductCredits = mutation({
     return true;
   },
 });
-
-import { v } from "convex/values";
 
 export const addCredits = mutation({
   args: { amount: v.number() },

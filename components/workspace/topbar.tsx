@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-import { Zap, Menu, X, Search, History, CreditCard, Settings } from "lucide-react";
+import { Zap, Menu, X, Search, History, CreditCard, Settings, Home } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 const NAV_ITEMS = [
+  { name: "Home", icon: Home, href: "/home" },
   { name: "Scanner", icon: Search, href: "/scanner" },
   { name: "History", icon: History, href: "/history" },
   { name: "Credits & Billing", icon: CreditCard, href: "/credits" },
