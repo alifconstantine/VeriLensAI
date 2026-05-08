@@ -4,9 +4,10 @@ import { v } from "convex/values";
 export default defineSchema({
   scans: defineTable({
     userId: v.string(), // From Clerk
-    mediaType: v.string(), // "image" | "text"
-    fileStorageId: v.optional(v.id("_storage")), // Convex storage ID for images
+    mediaType: v.string(), // "image" | "text" | "document"
+    fileStorageId: v.optional(v.id("_storage")), // Convex storage ID for images/documents
     textContent: v.optional(v.string()), // For text scans
+    fileName: v.optional(v.string()), // For document scans
     confidenceScore: v.number(),
     isAiGenerated: v.boolean(),
     conclusion: v.string(),

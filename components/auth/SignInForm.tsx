@@ -34,15 +34,16 @@ export default function SignInForm() {
         setError(signInError.message || "Invalid credentials.");
       } else if (signIn.status === "complete") {
         await signIn.finalize();
-        router.push("/scanner");
+        router.push("/home");
       } else {
         // Needs further steps (like MFA)
         console.log("Sign in status:", signIn.status);
         setError("Further authentication required.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign in error:", err);
-      setError(err.errors?.[0]?.message || "Invalid credentials. Please try again.");
+      const e = err as { errors?: { message: string }[] };
+      setError(e.errors?.[0]?.message || "Invalid credentials. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +130,7 @@ export default function SignInForm() {
       </form>
 
       <p className="mt-6 text-center text-[14px] text-[#555a6a]">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/sign-up" className="font-medium text-[#4262ff] hover:underline">
           Sign up
         </Link>

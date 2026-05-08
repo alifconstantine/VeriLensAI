@@ -1,15 +1,17 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, UploadCloud, FileImage, Type, ShieldAlert, Cpu, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, UploadCloud, FileImage, Type, ShieldAlert, Cpu, CheckCircle, AlertCircle, FileText, File as FileIcon } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
 const TABS = [
   { id: "image", label: "Image", icon: FileImage },
+  { id: "document", label: "Document", icon: FileText },
   { id: "text", label: "Text", icon: Type },
 ] as const;
 
@@ -24,7 +26,7 @@ type Anomaly = {
 type ScanResult = {
   is_ai_generated: boolean;
   confidence_score: number;
-  media_type: "image" | "text";
+  media_type: "image" | "document" | "text";
   conclusion: string;
   anomalies?: Anomaly[];
 };
@@ -35,15 +37,20 @@ export default function ScannerPage() {
   const [isHovering, setIsHovering] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "complete">("idle");
   const [textContent, setTextContent] = useState("");
+  
   const [imageFileUrl, setImageFileUrl] = useState<string | null>(null);
   const [rawImageFile, setRawImageFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Interactive Hover State
+  const [documentFileUrl, setDocumentFileUrl] = useState<string | null>(null);
+  const [rawDocumentFile, setRawDocumentFile] = useState<File | null>(null);
+
+  const [result, setResult] = useState<ScanResult | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  
   const [hoveredAnomalyIndex, setHoveredAnomalyIndex] = useState<number | null>(null);
 
-  // Convex Hooks
   const user = useQuery(api.users.getUser);
   const initUser = useMutation(api.users.initUser);
   const deductCredits = useMutation(api.users.deductCredits);
@@ -52,45 +59,64 @@ export default function ScannerPage() {
   const saveScan = useMutation(api.scans.saveScan);
 
   useEffect(() => {
-    // Initialize user credits if they are new and authenticated
     if (isAuthenticated) {
       initUser().catch(console.error);
     }
   }, [initUser, isAuthenticated]);
 
-  const hasEnoughCredits = user !== undefined && user !== null && user.credits >= 10;
   const isOutOfCredits = user !== undefined && user !== null && user.credits < 10;
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = useCallback((file: File) => {
     if (isOutOfCredits) return;
-    
-    // 5MB Limit Validation
     if (file.size > 5 * 1024 * 1024) {
       alert("File size exceeds 5MB limit. Please upload a smaller image.");
       return;
     }
-
     setRawImageFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       setImageFileUrl(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-  };
+  }, [isOutOfCredits]);
+
+  const handleDocumentUpload = useCallback((file: File) => {
+    if (isOutOfCredits) return;
+    if (file.type !== "application/pdf") {
+      alert("Only PDF documents are supported.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit. Please upload a smaller document.");
+      return;
+    }
+    setRawDocumentFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setDocumentFileUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }, [isOutOfCredits]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsHovering(false);
-    
     if (isOutOfCredits) return;
-    if (activeTab === "image" && e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageUpload(e.dataTransfer.files[0]);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    if (activeTab === "image") {
+      handleImageUpload(file);
+    } else if (activeTab === "document") {
+      handleDocumentUpload(file);
     }
-  }, [activeTab, isOutOfCredits]);
+  }, [activeTab, isOutOfCredits, handleImageUpload, handleDocumentUpload]);
 
   const startScan = async () => {
     if (isOutOfCredits) return;
     if (activeTab === "image" && (!imageFileUrl || !rawImageFile)) return;
+    if (activeTab === "document" && (!documentFileUrl || !rawDocumentFile)) return;
     if (activeTab === "text" && !textContent.trim()) return;
 
     setScanStatus("scanning");
@@ -99,23 +125,23 @@ export default function ScannerPage() {
     let creditsDeducted = false;
 
     try {
-      // 1. Deduct Credits First
       await deductCredits();
       creditsDeducted = true;
 
       let storageId: string | undefined = undefined;
+      const activeFile = activeTab === "image" ? rawImageFile : (activeTab === "document" ? rawDocumentFile : null);
+      const activeContentUrl = activeTab === "image" ? imageFileUrl : (activeTab === "document" ? documentFileUrl : null);
 
-      // 2. Upload Image to Convex (if image)
-      if (activeTab === "image" && rawImageFile) {
+      if ((activeTab === "image" || activeTab === "document") && activeFile) {
         const uploadUrl = await generateUploadUrl();
         const uploadResult = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": rawImageFile.type },
-          body: rawImageFile,
+          headers: { "Content-Type": activeFile.type },
+          body: activeFile,
         });
 
         if (!uploadResult.ok) {
-          throw new Error("Failed to upload image to storage");
+          throw new Error("Failed to upload file to storage");
         }
 
         const { storageId: returnedStorageId } = await uploadResult.json();
@@ -124,13 +150,12 @@ export default function ScannerPage() {
 
       const currentLang = user?.language || "id";
 
-      // 3. Call Gemini API
       const response = await fetch("/api/detect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mediaType: activeTab,
-          content: activeTab === "image" ? imageFileUrl : textContent,
+          content: activeTab === "text" ? textContent : activeContentUrl,
           language: currentLang,
         }),
       });
@@ -143,11 +168,11 @@ export default function ScannerPage() {
       const data: ScanResult = await response.json();
       setResult(data);
 
-      // 4. Save to Convex Database
       await saveScan({
         mediaType: activeTab,
-        fileStorageId: storageId as any,
+        fileStorageId: storageId as Id<"_storage"> | undefined,
         textContent: activeTab === "text" ? textContent : undefined,
+        fileName: activeTab === "document" && rawDocumentFile ? rawDocumentFile.name : undefined,
         confidenceScore: data.confidence_score,
         isAiGenerated: data.is_ai_generated,
         conclusion: data.conclusion,
@@ -155,21 +180,21 @@ export default function ScannerPage() {
       });
 
       setScanStatus("complete");
-    } catch (error: any) {
-      console.error(error);
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error(err);
       setScanStatus("idle");
       
-      // Auto-Refund Logic if an error occurs after deduction
       if (creditsDeducted) {
         try {
           await addCredits({ amount: 10 });
-          alert(`Scan failed: ${error.message}. Your 10 credits have been refunded.`);
+          alert(`Scan failed: ${err.message}. Your 10 credits have been refunded.`);
         } catch (refundError) {
           console.error("Failed to refund credits", refundError);
           alert("Scan failed and we encountered an error refunding credits. Please contact support.");
         }
       } else {
-        alert(error.message || "Error scanning content. Please try again.");
+        alert(err.message || "Error scanning content. Please try again.");
       }
     }
   };
@@ -179,6 +204,8 @@ export default function ScannerPage() {
     setResult(null);
     setImageFileUrl(null);
     setRawImageFile(null);
+    setDocumentFileUrl(null);
+    setRawDocumentFile(null);
     setTextContent("");
     setHoveredAnomalyIndex(null);
   };
@@ -313,7 +340,7 @@ export default function ScannerPage() {
                 </div>
               )}
 
-              {activeTab === "image" ? (
+              {activeTab === "image" && (
                 <div
                   onDragOver={(e) => { e.preventDefault(); if (!isOutOfCredits) setIsHovering(true); }}
                   onDragLeave={() => setIsHovering(false)}
@@ -356,7 +383,58 @@ export default function ScannerPage() {
                     </>
                   )}
                 </div>
-              ) : (
+              )}
+
+              {activeTab === "document" && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); if (!isOutOfCredits) setIsHovering(true); }}
+                  onDragLeave={() => setIsHovering(false)}
+                  onDrop={handleDrop}
+                  onClick={() => !isOutOfCredits && !documentFileUrl && documentInputRef.current?.click()}
+                  className={cn(
+                    "group flex cursor-pointer flex-col items-center justify-center rounded-[16px] border border-[#e0e2e8] p-12 transition-all duration-300 min-h-[400px] overflow-hidden relative shadow-[0_12px_32px_-4px_rgba(5,0,56,0.08)]",
+                    isHovering 
+                      ? "border-[#4262ff] bg-[#f5f3ff]" 
+                      : "bg-[#ffffff] hover:bg-[#f7f8fa]"
+                  )}
+                >
+                  <input 
+                    type="file" 
+                    ref={documentInputRef} 
+                    onChange={(e) => {
+                      if (!isOutOfCredits && e.target.files?.[0]) handleDocumentUpload(e.target.files[0]);
+                    }} 
+                    className="hidden" 
+                    accept="application/pdf"
+                  />
+                  
+                  {documentFileUrl ? (
+                    <div className="absolute inset-0 w-full h-full bg-[#fafbfc] flex flex-col items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <FileIcon className="h-16 w-16 text-[#4262ff] mb-4" />
+                        <h3 className="text-[18px] font-medium text-[#1c1c1e]">{rawDocumentFile?.name}</h3>
+                        <p className="text-[13px] text-[#555a6a] mt-1">{(rawDocumentFile!.size / 1024 / 1024).toFixed(2)} MB • Ready to scan</p>
+                      </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setDocumentFileUrl(null); setRawDocumentFile(null); }}
+                        className="absolute top-8 right-8 flex h-10 w-10 items-center justify-center rounded-full bg-[#1c1c1e] text-[#ffffff] shadow-[0_4px_12px_rgba(5,0,56,0.06)] hover:bg-[#2c2c34]"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f7f8fa] border border-[#e0e2e8]">
+                        <FileText className="h-8 w-8 text-[#555a6a]" />
+                      </div>
+                      <h3 className="mb-2 text-[22px] font-medium text-[#1c1c1e]">Upload PDF Document</h3>
+                      <p className="text-[14px] text-[#555a6a] mb-8">Drag & drop your file or click to browse</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "text" && (
                 <div className="flex flex-col rounded-[16px] border border-[#e0e2e8] bg-[#ffffff] p-6 min-h-[400px] shadow-[0_12px_32px_-4px_rgba(5,0,56,0.08)]">
                   <textarea
                     value={textContent}
@@ -365,16 +443,19 @@ export default function ScannerPage() {
                     placeholder={isOutOfCredits ? "Please purchase more credits to analyze text." : "Paste the text you want to analyze here..."}
                     className="w-full flex-1 resize-none bg-transparent text-[16px] text-[#1c1c1e] placeholder:text-[#a5a8b5] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
+                  <div className="mt-4 flex justify-end items-center border-t border-[#e0e2e8] pt-4">
+                    <span className="text-[12px] font-medium text-[#8e91a0] bg-[#f7f8fa] px-3 py-1 rounded-full border border-[#e0e2e8]">{textContent.length} characters</span>
+                  </div>
                 </div>
               )}
 
               <div className="mt-8 flex justify-center">
                 <button 
                   onClick={startScan}
-                  disabled={isOutOfCredits || (activeTab === "image" ? !imageFileUrl : !textContent.trim())}
+                  disabled={isOutOfCredits || (activeTab === "image" && !imageFileUrl) || (activeTab === "document" && !documentFileUrl) || (activeTab === "text" && !textContent.trim())}
                   className="rounded-full bg-[#1c1c1e] px-8 py-3 text-[14px] font-medium text-[#ffffff] transition-colors hover:bg-[#2c2c34] disabled:opacity-50 disabled:hover:bg-[#1c1c1e]"
                 >
-                  Analyze {activeTab === "image" ? "Image" : "Text"}
+                  Analyze {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </button>
               </div>
             </motion.div>
@@ -406,19 +487,20 @@ export default function ScannerPage() {
               animate={{ opacity: 1 }}
               className="flex flex-col lg:flex-row gap-8 items-start w-full mt-4"
             >
-              {/* Left Column (Image Area) */}
+              {/* Left Column (Content Area) */}
               <div className="flex-1 w-full sticky top-8">
-                <div className="flex flex-col rounded-[16px] border border-[#e0e2e8] bg-[#ffffff] shadow-[0_12px_32px_-4px_rgba(5,0,56,0.08)] overflow-visible">
-                  <div className="bg-[#f7f8fa] border-b border-[#e0e2e8] px-6 py-4 rounded-t-[16px]">
-                    <h3 className="text-[14px] font-medium text-[#1c1c1e]">Visual Analysis</h3>
+                <div className="flex flex-col rounded-[16px] border border-[#e0e2e8] bg-[#ffffff] shadow-[0_12px_32px_-4px_rgba(5,0,56,0.08)] overflow-hidden">
+                  <div className="bg-[#f7f8fa] border-b border-[#e0e2e8] px-6 py-4">
+                    <h3 className="text-[14px] font-medium text-[#1c1c1e]">Analysis Preview</h3>
                   </div>
-                  <div className="flex flex-1 items-center justify-center p-6 bg-[#fafbfc] rounded-b-[16px] overflow-visible">
+                  <div className="flex flex-1 items-center justify-center bg-[#fafbfc] overflow-visible">
+                    
                     {activeTab === "image" && imageFileUrl && (
-                      <div className="relative inline-block rounded-md w-full h-auto">
+                      <div className="relative inline-block rounded-md w-full h-auto p-6">
                         <img 
                           src={imageFileUrl} 
                           alt="Analyzed" 
-                          className="w-full h-auto object-contain block border border-[#eef0f3] rounded-md" 
+                          className="w-full h-auto object-contain block border border-[#eef0f3] rounded-md bg-white" 
                         />
                         {/* Bounding Boxes */}
                         {result.anomalies?.map((anomaly, i) => {
@@ -435,10 +517,10 @@ export default function ScannerPage() {
                                   : "border-[#ffd8f4] bg-[#ffd8f4]/20 hover:bg-[#ffd8f4]/40 hover:z-[999]"
                               )}
                               style={{
-                                top: `${(ymin / 1000) * 100}%`,
-                                left: `${(xmin / 1000) * 100}%`,
-                                height: `${((ymax - ymin) / 1000) * 100}%`,
-                                width: `${((xmax - xmin) / 1000) * 100}%`,
+                                top: `calc(${(ymin / 1000) * 100}% + 24px)`,
+                                left: `calc(${(xmin / 1000) * 100}% + 24px)`,
+                                height: `calc(${((ymax - ymin) / 1000) * 100}%)`,
+                                width: `calc(${((xmax - xmin) / 1000) * 100}%)`,
                               }}
                               onMouseEnter={() => setHoveredAnomalyIndex(i)}
                               onMouseLeave={() => setHoveredAnomalyIndex(null)}
@@ -455,8 +537,46 @@ export default function ScannerPage() {
                         })}
                       </div>
                     )}
+
+                    {activeTab === "document" && documentFileUrl && (
+                      <div className="w-full flex flex-col h-full">
+                        {/* PDF View */}
+                        <div className="w-full h-[500px] border-b border-[#eef0f3] bg-[#eef0f3]">
+                          <object data={documentFileUrl} type="application/pdf" className="w-full h-full">
+                            <iframe src={documentFileUrl} className="w-full h-full border-none">
+                              <p>Your browser does not support PDFs. Please download the PDF to view it.</p>
+                            </iframe>
+                          </object>
+                        </div>
+                        {/* Highlights (AI Fragments Extracted) */}
+                        {result.anomalies && result.anomalies.filter(a => a.exact_text).length > 0 && (
+                          <div className="p-6 bg-white w-full space-y-4 overflow-y-auto max-h-[300px]">
+                            <h4 className="text-[13px] font-bold text-[#555a6a] uppercase tracking-wider mb-2">Flagged Text Fragments Found</h4>
+                            <div className="space-y-4">
+                              {result.anomalies.filter(a => a.exact_text).map((anom, i) => (
+                                <div 
+                                  key={i} 
+                                  className={cn(
+                                    "p-4 rounded-[12px] border transition-all duration-200 text-[#1c1c1e]",
+                                    hoveredAnomalyIndex === i ? "border-[#ffd02f] bg-[#fffaf0] shadow-sm" : "border-[#e0e2e8] bg-[#fafbfc]"
+                                  )}
+                                  onMouseEnter={() => setHoveredAnomalyIndex(i)}
+                                  onMouseLeave={() => setHoveredAnomalyIndex(null)}
+                                >
+                                  <div className="text-[12px] font-bold text-[#8e91a0] mb-2 uppercase tracking-wide">Extracted AI Phrasing</div>
+                                  <blockquote className="border-l-4 border-[#ffd02f] pl-4 text-[14px] italic leading-relaxed text-[#555a6a]">
+                                    &quot;{anom.exact_text}&quot;
+                                  </blockquote>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {activeTab === "text" && (
-                      <div className="w-full p-6 bg-[#ffffff] border border-[#eef0f3] rounded-[8px] self-start min-h-[300px]">
+                      <div className="w-full p-8 bg-[#ffffff] self-start min-h-[300px]">
                         {renderTextWithHighlights(textContent, result.anomalies)}
                       </div>
                     )}

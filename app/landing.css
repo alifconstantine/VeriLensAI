@@ -555,28 +555,57 @@
   color: var(--landing-text-muted);
 }
 
+.testimonials-carousel-wrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  /* Add mask fading at the edges to blend the scroll */
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
 .testimonials-carousel {
   display: flex;
   gap: 20px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding-bottom: 16px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  width: max-content;
+  /* Ensure wrapper takes full width to avoid collapsing */
+  padding: 10px 0;
 }
 
-.testimonials-carousel::-webkit-scrollbar {
-  display: none;
+/* Loop animation wrapper */
+.testimonials-carousel:hover .testimonials-carousel-track {
+  animation-play-state: paused;
+}
+
+.testimonials-carousel-track {
+  display: flex;
+  gap: 20px;
+  animation: marquee-scroll 30s linear infinite;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 20px));
+  }
 }
 
 .testimonial-card {
   flex: 0 0 340px;
-  scroll-snap-align: start;
   background: var(--landing-white);
   border-radius: 16px;
   padding: 28px;
   text-align: left;
   border: 1px solid var(--landing-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
 .testimonial-card-text {

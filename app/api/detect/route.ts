@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 
-const SYSTEM_PROMPT = `You are a world-class Digital Forensics AI. Analyze the provided media (Image or Text) to determine if it is AI-generated. 
+const SYSTEM_PROMPT = `You are a world-class Digital Forensics AI. Analyze the provided media (Image, Document, or Text) to determine if it is AI-generated. 
 If the input is an IMAGE, look for visual anomalies, blending errors, and SynthID patterns. For image anomalies, provide a 2D bounding box using the format [ymin, xmin, ymax, xmax] scaled from 0 to 1000.
+If the input is a DOCUMENT (PDF), analyze the text, phrasing, and structure. For document anomalies, provide the exact substring of the unnatural/AI-generated text.
 If the input is TEXT, look for robotic phrasing, zero-shot AI patterns, and lack of human perplexity. For text anomalies, provide the exact substring.
 Return ONLY a valid JSON object matching this schema:
 {
   "is_ai_generated": boolean,
   "confidence_score": number (0 to 100),
-  "media_type": string ("image" or "text"),
+  "media_type": string ("image", "document", or "text"),
   "conclusion": string,
   "anomalies": [
     {
       "description": string (e.g., '6 fingers', 'robotic repetition'),
       "box_2d": [ymin, xmin, ymax, xmax] (ONLY if image. Use 0-1000 scale. e.g., [450, 600, 500, 700]),
-      "exact_text": string (ONLY if text. The exact unnatural sentence/phrase)
+      "exact_text": string (ONLY if document or text. The exact unnatural sentence/phrase)
     }
   ]
 }`;
@@ -30,11 +31,11 @@ export async function POST(req: Request) {
       ? "\nIMPORTANT: You MUST write the 'conclusion', 'detailed_reasons', and 'anomalies.description' in strictly ENGLISH."
       : "\nIMPORTANT: You MUST write the 'conclusion', 'detailed_reasons', and 'anomalies.description' in strictly INDONESIAN (Bahasa Indonesia).";
 
-    const messages = [
+    const messages: Record<string, unknown>[] = [
       { role: "system", content: SYSTEM_PROMPT + langInstruction },
     ];
 
-    if (mediaType === "image") {
+    if (mediaType === "image" || mediaType === "document") {
       messages.push({
         role: "user",
         content: [
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
             }
           }
         ]
-      } as any);
+      });
     } else {
       messages.push({
         role: "user",
