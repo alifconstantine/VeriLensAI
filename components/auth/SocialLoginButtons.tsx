@@ -16,7 +16,7 @@ export default function SocialLoginButtons() {
       await signIn.sso({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectCallbackUrl: "/dashboard",
+        redirectCallbackUrl: "/home",
       });
     } catch (err) {
       console.error("OAuth error", err);

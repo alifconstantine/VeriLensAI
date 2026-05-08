@@ -83,7 +83,7 @@ export default function ForgotPasswordForm() {
 
       if (signIn.status === "complete") {
         await signIn.finalize();
-        router.push("/dashboard");
+        router.push("/home");
       } else {
         console.log("Reset status:", signIn.status);
         setError("Password reset incomplete.");
